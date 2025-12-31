@@ -1,36 +1,27 @@
 {
   "rewrites": [
     {
-      "source": "/series/:slug*",
+      "source": "/series/:slug",
       "destination": "/index.html"
     },
     {
-      "source": "/chapter/:slug*",
+      "source": "/chapter/:slug",
       "destination": "/index.html"
     },
     {
-      "source": "/ongoing",
+      "source": "/((?!404\\.html|assets/|favicon\\.ico).*)",
       "destination": "/index.html"
-    },
-    {
-      "source": "/completed",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/history",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/bookmarks",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/404.html",
-      "destination": "/404.html"
-    },
+    }
+  ],
+  "headers": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     }
   ]
 }
