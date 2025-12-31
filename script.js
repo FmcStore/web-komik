@@ -1,4 +1,7 @@
-<!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada Wai masih aja mau genjutsu webnya malu lah sama ortu lu -->
+/* 
+ <!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada Wai masih aja mau genjutsu webnya malu lah sama ortu lu -->
+*/
+
 const API_PROXY = "https://api.nekolabs.web.id/px?url=";
 const API_BASE = "https://www.sankavollerei.com/comic/komikcast";
 
@@ -6,8 +9,6 @@ const contentArea = document.getElementById('content-area');
 const filterPanel = document.getElementById('filter-panel');
 const mainNav = document.getElementById('main-nav');
 const mobileNav = document.getElementById('mobile-nav');
-
-let currentComicChapters = [];
 
 function getTypeClass(type) {
     if (!type) return 'type-default';
@@ -39,10 +40,20 @@ function resetNavs() {
     filterPanel.classList.add('hidden');
 }
 
-// HOME
-async function showHome() {
+
+function updateURL(path) {
+    if (window.location.pathname !== path) {
+        history.pushState(null, null, path);
+    }
+}
+
+
+async function showHome(push = true) {
+    if (push) updateURL('/'); 
+    
     resetNavs();
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
+    
     const data = await fetchAPI(`${API_BASE}/home`);
     if(!data) return;
 
@@ -95,13 +106,13 @@ async function showHome() {
 
 // ONGOING (HOT)
 async function showOngoing(page = 1) {
+    updateURL('/ongoing');
     resetNavs();
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     const data = await fetchAPI(`${API_BASE}/list?status=Ongoing&orderby=popular&page=${page}`);
     renderGrid(data, "Komik Ongoing Terpopuler", "showOngoing");
 }
 
-// COMPLETED (TAMAT)
 async function showCompleted(page = 1) {
     resetNavs();
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
@@ -109,7 +120,6 @@ async function showCompleted(page = 1) {
     renderGrid(data, "Komik Tamat (Selesai)", "showCompleted");
 }
 
-// SEARCH
 async function applyAdvancedFilter() {
     const query = document.getElementById('search-input').value;
     if(!query) return;
@@ -119,7 +129,6 @@ async function applyAdvancedFilter() {
     renderGrid(data, `Hasil Pencarian: ${query}`, null);
 }
 
-// RENDER GRID (Kunci Perbaikan Next Button)
 function renderGrid(data, title, funcName) {
     const list = data?.data || [];
     if(list.length === 0) {
@@ -160,9 +169,13 @@ function renderGrid(data, title, funcName) {
     window.scrollTo(0,0);
 }
 
-// DETAIL & CHAPTER
-async function showDetail(slug) {
+
+async function showDetail(slug, push = true) {
+    if (push) updateURL(`/series/${slug}`);
+
+    resetNavs(); 
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
+    
     const data = await fetchAPI(`${API_BASE}/detail/${slug}`);
     if(!data) return;
 
@@ -217,18 +230,24 @@ async function showDetail(slug) {
     window.scrollTo(0,0);
 }
 
-async function readChapter(chSlug, comicSlug) {
+async function readChapter(chSlug, comicSlug, push = true) {
+    if (push) updateURL(`/chapter/${chSlug}`);
+
     mainNav.classList.add('-translate-y-full');
     mobileNav.classList.add('translate-y-full');
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
+    
     const data = await fetchAPI(`${API_BASE}/chapter/${chSlug}`);
     if(!data) return;
 
     const res = data.data;
+
+    const backAction = comicSlug ? `showDetail('${comicSlug}')` : `showHome()`;
+
     contentArea.innerHTML = `
         <div class="relative min-h-screen bg-black -mx-4 -mt-24">
             <div id="reader-top" class="reader-ui fixed top-0 w-full glass z-[60] p-4 flex justify-between items-center border-b border-white/10">
-                <button onclick="showDetail('${comicSlug}')" class="p-2 hover:bg-white/10 rounded-full"><i class="fa fa-arrow-left"></i></button>
+                <button onclick="${backAction}" class="p-2 hover:bg-white/10 rounded-full"><i class="fa fa-arrow-left"></i></button>
                 <h2 class="text-xs font-bold truncate text-amber-500 max-w-[200px]">${chSlug.replace(/-/g, ' ')}</h2>
                 <div class="w-10"></div>
             </div>
@@ -237,14 +256,17 @@ async function readChapter(chSlug, comicSlug) {
             </div>
             <div id="reader-bottom" class="reader-ui fixed bottom-6 left-0 w-full z-[60] px-4 flex justify-center">
                 <div class="glass p-3 rounded-2xl flex gap-6 items-center shadow-2xl border border-white/10">
-                    <button onclick="${res.navigation.prev ? `readChapter('${res.navigation.prev}', '${comicSlug}')` : ''}" class="p-4 bg-white/5 rounded-xl ${!res.navigation.prev ? 'opacity-10' : 'hover:bg-amber-500 hover:text-black transition'}"><i class="fa fa-chevron-left"></i></button>
+                    <button onclick="${res.navigation.prev ? `readChapter('${res.navigation.prev}', '${comicSlug || ''}')` : ''}" class="p-4 bg-white/5 rounded-xl ${!res.navigation.prev ? 'opacity-10' : 'hover:bg-amber-500 hover:text-black transition'}"><i class="fa fa-chevron-left"></i></button>
                     <span class="text-xs font-bold px-4">Navigasi</span>
-                    <button onclick="${res.navigation.next ? `readChapter('${res.navigation.next}', '${comicSlug}')` : ''}" class="p-4 amber-gradient text-black rounded-xl ${!res.navigation.next ? 'opacity-10' : 'hover:scale-105 transition'}"><i class="fa fa-chevron-right"></i></button>
+                    <button onclick="${res.navigation.next ? `readChapter('${res.navigation.next}', '${comicSlug || ''}')` : ''}" class="p-4 amber-gradient text-black rounded-xl ${!res.navigation.next ? 'opacity-10' : 'hover:scale-105 transition'}"><i class="fa fa-chevron-right"></i></button>
                 </div>
             </div>
         </div>
     `;
-    saveHistory(comicSlug, null, null, chSlug, chSlug.replace(/-/g, ' '));
+    
+    if(comicSlug) {
+        saveHistory(comicSlug, null, null, chSlug, chSlug.replace(/-/g, ' '));
+    }
     window.scrollTo(0,0);
 }
 
@@ -255,7 +277,7 @@ function toggleReaderUI() {
 
 function handleSearch(e) { if(e.key === 'Enter') applyAdvancedFilter(); }
 
-// HISTORY & BOOKMARK
+
 function saveHistory(slug, title, image, chSlug, chTitle) {
     let history = JSON.parse(localStorage.getItem('fmc_history') || '[]');
     let existing = history.find(h => h.slug === slug);
@@ -301,4 +323,39 @@ function showBookmarks() {
     renderGrid({ data: bookmarks }, "Koleksi Favorit", null);
 }
 
-showHome();
+
+window.addEventListener('popstate', () => {
+    handleInitialLoad();
+});
+
+function handleInitialLoad() {
+    const path = window.location.pathname;
+    
+    resetNavs(); 
+
+    if (path === '/' || path === '/index.html') {
+        showHome(false); // false = jangan pushState karena kita sudah di URL tsb
+    } 
+    else if (path.startsWith('/series/')) {
+        //  slug dari URL: /series/nama-komik
+        const parts = path.split('/');
+        // parts[0] = "", parts[1] = "series", parts[2] = "nama-komik"
+        const slug = parts[2];
+        if (slug) showDetail(slug, false);
+        else showHome(false);
+    } 
+    else if (path.startsWith('/chapter/')) {
+        // slug dari URL: /chapter/nama-chapter
+        const parts = path.split('/');
+        const slug = parts[2];
+        if (slug) readChapter(slug, null, false); 
+        else showHome(false);
+    } 
+    else {
+        showHome(false);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    handleInitialLoad();
+});
