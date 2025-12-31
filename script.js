@@ -12,6 +12,7 @@ const mobileNav = document.getElementById('mobile-nav');
 
 let currentChapterList = [];
 
+
 function getTypeClass(type) {
     if (!type) return 'type-default';
     const t = type.toLowerCase();
@@ -20,6 +21,7 @@ function getTypeClass(type) {
     if (t.includes('manhua')) return 'type-manhua';
     return 'type-default';
 }
+
 
 async function fetchAPI(url) {
     try {
@@ -34,6 +36,11 @@ async function fetchAPI(url) {
 
 function toggleFilter() {
     filterPanel.classList.toggle('hidden');
+
+    const genreSelect = document.getElementById('filter-genre');
+    if (genreSelect.options.length <= 1) {
+        loadGenres();
+    }
 }
 
 function resetNavs() {
@@ -48,6 +55,36 @@ function updateURL(path) {
     }
 }
 
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch((err) => {
+            console.log(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
+async function loadGenres() {
+    const data = await fetchAPI(`${API_BASE}/genres`);
+    if(data && data.data) {
+        const select = document.getElementById('filter-genre');
+        // Sort genres alphabetically
+        const sorted = data.data.sort((a, b) => a.title.localeCompare(b.title));
+        
+        select.innerHTML = '<option value="">Pilih Genre</option>';
+        sorted.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.slug;
+            opt.text = g.title;
+            select.appendChild(opt);
+        });
+    }
+}
+
+
 async function showHome(push = true) {
     if (push) updateURL('/'); 
     
@@ -55,7 +92,10 @@ async function showHome(push = true) {
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     const data = await fetchAPI(`${API_BASE}/home`);
-    if(!data) return;
+    if(!data) {
+        contentArea.innerHTML = `<div class="text-center py-40 text-gray-500">Gagal memuat data. Periksa koneksi.</div>`;
+        return;
+    }
 
     contentArea.innerHTML = `
         <section class="mb-10">
@@ -104,7 +144,6 @@ async function showHome(push = true) {
     window.scrollTo(0,0);
 }
 
-// ONGOING
 async function showOngoing(page = 1) {
     updateURL('/ongoing');
     resetNavs();
@@ -120,29 +159,53 @@ async function showCompleted(page = 1) {
     renderGrid(data, "Komik Tamat (Selesai)", "showCompleted");
 }
 
-// FILTER & SEARCH LOGIC (UPDATED)
+// --- GENRE FUNCTION (NEW) ---
+async function showGenre(slug, page = 1) {
+    resetNavs();
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
+    
+    // API Sesuai request: genre/slug/page
+    const data = await fetchAPI(`${API_BASE}/genre/${slug}/${page}`);
+    
+    // Pass 'slug' sebagai extraArg ke renderGrid agar pagination tahu genre apa yang sedang dibuka
+    renderGrid(data, `Genre: ${slug.toUpperCase()}`, "showGenre", slug);
+}
+
 async function applyAdvancedFilter() {
     const query = document.getElementById('search-input').value;
+    const genre = document.getElementById('filter-genre').value; // Ambil nilai genre
     const type = document.getElementById('filter-type').value;
     const status = document.getElementById('filter-status').value;
 
     filterPanel.classList.add('hidden');
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
-    let url = `${API_BASE}/list?page=1`;
+    // Prioritas 1: Search Text
     if (query) {
-        url = `${API_BASE}/search/${encodeURIComponent(query)}/1`;
-    } else {
-        if (type) url += `&type=${type}`;
-        if (status) url += `&status=${status}`;
-        url += `&orderby=popular`; // Default sort
+        const data = await fetchAPI(`${API_BASE}/search/${encodeURIComponent(query)}/1`);
+        renderGrid(data, `Hasil Pencarian: ${query}`, null);
+        return;
     }
 
+    // Prioritas 2: Genre (Fitur Baru)
+    if (genre) {
+        // Jika genre dipilih, gunakan showGenre (API genre)
+        showGenre(genre, 1);
+        return;
+    }
+
+    // Prioritas 3: Filter Type/Status (List API)
+    let url = `${API_BASE}/list?page=1`;
+    if (type) url += `&type=${type}`;
+    if (status) url += `&status=${status}`;
+    url += `&orderby=popular`; 
+
     const data = await fetchAPI(url);
-    renderGrid(data, query ? `Hasil Pencarian: ${query}` : "Hasil Filter", null);
+    renderGrid(data, "Hasil Filter", null);
 }
 
-function renderGrid(data, title, funcName) {
+// Updated renderGrid to support pagination with arguments (like genre slug)
+function renderGrid(data, title, funcName, extraArg = null) {
     const list = data?.data || [];
     if(list.length === 0) {
         contentArea.innerHTML = `<div class="text-center py-40 text-gray-500"><p>Komik tidak ditemukan.</p></div>`;
@@ -154,11 +217,15 @@ function renderGrid(data, title, funcName) {
         const current = data.pagination.currentPage;
         const hasNext = data.pagination.hasNextPage;
         
+        // Buat string argument untuk fungsi onclick
+        // Jika ada extraArg (misal genre slug), tambahkan tanda kutip
+        const argStr = extraArg ? `'${extraArg}', ` : '';
+
         paginationHTML = `
             <div class="mt-14 flex justify-center items-center gap-6">
-                ${current > 1 ? `<button onclick="${funcName}(${current - 1})" class="glass px-6 py-2 rounded-xl text-xs hover:bg-amber-500 hover:text-black transition">Prev</button>` : ''}
+                ${current > 1 ? `<button onclick="${funcName}(${argStr}${current - 1})" class="glass px-6 py-2 rounded-xl text-xs hover:bg-amber-500 hover:text-black transition">Prev</button>` : ''}
                 <span class="bg-amber-500 text-black px-6 py-2 rounded-xl text-xs font-extrabold">${current}</span>
-                ${hasNext ? `<button onclick="${funcName}(${current + 1})" class="glass px-6 py-2 rounded-xl text-xs hover:bg-amber-500 hover:text-black transition">Next</button>` : ''}
+                ${hasNext ? `<button onclick="${funcName}(${argStr}${current + 1})" class="glass px-6 py-2 rounded-xl text-xs hover:bg-amber-500 hover:text-black transition">Next</button>` : ''}
             </div>
         `;
     }
@@ -182,7 +249,6 @@ function renderGrid(data, title, funcName) {
     window.scrollTo(0,0);
 }
 
-// DETAIL PAGE (UPDATED: Added Genres & Info Row)
 async function showDetail(slug, push = true) {
     if (push) updateURL(`/series/${slug}`);
 
@@ -193,7 +259,6 @@ async function showDetail(slug, push = true) {
     if(!data) return;
 
     const res = data.data;
-    
     currentChapterList = res.chapters;
 
     const history = JSON.parse(localStorage.getItem('fmc_history') || '[]');
@@ -222,14 +287,12 @@ async function showDetail(slug, push = true) {
                 </div>
             </div>
             <div class="md:w-2/3">
-                <!-- GENRE SECTION RESTORED -->
                 <div class="flex flex-wrap gap-2 mb-4">
                     ${res.genres ? res.genres.map(g => `<span class="bg-amber-500/10 text-amber-500 text-[10px] px-3 py-1 rounded-full font-bold uppercase border border-amber-500/20">${g.title}</span>`).join('') : ''}
                 </div>
                 
                 <h1 class="text-3xl font-extrabold mb-4">${res.title}</h1>
                 
-                <!-- STATUS, RATING, TYPE RESTORED -->
                 <div class="flex gap-6 mb-6 text-sm bg-white/5 p-4 rounded-2xl w-fit border border-white/5">
                     <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Status</span><span class="text-green-400 font-bold">${res.status}</span></div>
                     <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Rating</span><span class="text-amber-500 font-bold">⭐ ${res.rating}</span></div>
@@ -255,7 +318,7 @@ async function showDetail(slug, push = true) {
     window.scrollTo(0,0);
 }
 
-// READER (UPDATED: UI Logic & Dropdown Select)
+// READER (Updated with Fullscreen Button)
 async function readChapter(chSlug, comicSlug, push = true) {
     if (push) updateURL(`/chapter/${chSlug}`);
 
@@ -269,7 +332,6 @@ async function readChapter(chSlug, comicSlug, push = true) {
     const res = data.data;
     const backAction = comicSlug ? `showDetail('${comicSlug}')` : `showHome()`;
 
-    // Generate Dropdown Options if available
     let dropdownHTML = '';
     if (currentChapterList && currentChapterList.length > 0) {
         dropdownHTML = `
@@ -283,13 +345,18 @@ async function readChapter(chSlug, comicSlug, push = true) {
 
     contentArea.innerHTML = `
         <div class="relative min-h-screen bg-black -mx-4 -mt-24">
+            <!-- HEADER READER (Added Fullscreen Button) -->
             <div id="reader-top" class="reader-ui fixed top-0 w-full glass z-[60] p-4 flex justify-between items-center border-b border-white/10">
-                <button onclick="${backAction}" class="p-2 hover:bg-white/10 rounded-full"><i class="fa fa-arrow-left"></i></button>
-                <h2 class="text-xs font-bold truncate text-amber-500 max-w-[200px]">${chSlug.replace(/-/g, ' ')}</h2>
-                <div class="w-10"></div>
+                <div class="flex items-center gap-2">
+                    <button onclick="${backAction}" class="p-2 hover:bg-white/10 rounded-full"><i class="fa fa-arrow-left"></i></button>
+                    <h2 class="text-xs font-bold truncate text-amber-500 max-w-[150px] md:max-w-xs">${chSlug.replace(/-/g, ' ')}</h2>
+                </div>
+                <!-- Fullscreen Button -->
+                <button onclick="toggleFullScreen()" class="p-2 hover:bg-white/10 rounded-full text-white/80">
+                    <i class="fa fa-expand"></i>
+                </button>
             </div>
             
-            <!-- Click image area to toggle UI -->
             <div class="flex flex-col items-center pt-20 pb-40" onclick="toggleReaderUI()">
                 ${res.images.map(img => `<img src="${img}" class="max-w-full md:max-w-3xl mb-1" loading="lazy">`).join('')}
             </div>
@@ -297,9 +364,7 @@ async function readChapter(chSlug, comicSlug, push = true) {
             <div id="reader-bottom" class="reader-ui fixed bottom-6 left-0 w-full z-[60] px-4 flex justify-center pointer-events-none">
                 <div class="glass p-3 rounded-2xl flex gap-2 items-center shadow-2xl border border-white/10 pointer-events-auto">
                     <button onclick="${res.navigation.prev ? `readChapter('${res.navigation.prev}', '${comicSlug || ''}')` : ''}" class="p-3 bg-white/10 rounded-xl ${!res.navigation.prev ? 'opacity-20' : 'hover:bg-amber-500 hover:text-black transition'}"><i class="fa fa-chevron-left"></i></button>
-                    
                     ${dropdownHTML}
-
                     <button onclick="${res.navigation.next ? `readChapter('${res.navigation.next}', '${comicSlug || ''}')` : ''}" class="p-3 amber-gradient text-black rounded-xl ${!res.navigation.next ? 'opacity-20' : 'hover:scale-105 transition'}"><i class="fa fa-chevron-right"></i></button>
                 </div>
             </div>
@@ -366,7 +431,6 @@ function showBookmarks() {
     renderGrid({ data: bookmarks }, "Koleksi Favorit", null);
 }
 
-
 window.addEventListener('popstate', () => {
     handleInitialLoad();
 });
@@ -376,10 +440,7 @@ function handleInitialLoad() {
     
     resetNavs(); 
 
-    if (path === '/' || path === '/index.html') {
-        showHome(false); 
-    } 
-    else if (path.startsWith('/series/')) {
+    if (path.startsWith('/series/')) {
         const parts = path.split('/');
         const slug = parts[2];
         if (slug) showDetail(slug, false);
@@ -396,3 +457,9 @@ function handleInitialLoad() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    
+    loadGenres();
+    
+    handleInitialLoad();
+});
