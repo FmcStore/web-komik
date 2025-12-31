@@ -1,8 +1,9 @@
 /* <!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada Wai masih aja mau genjutsu webnya malu lah sama ortu lu --> */
-/* <!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada Wai masih aja mau genjutsu webnya malu lah sama ortu lu --> */
 
 body { 
     font-family: 'Poppins', sans-serif; 
+    background-color: #0b0b0f; 
+    color: #e5e7eb; 
     scroll-behavior: smooth; 
 }
 
@@ -71,32 +72,38 @@ body {
 .ui-hidden-top { transform: translateY(-100%); opacity: 0; }
 .ui-hidden-bottom { transform: translateY(100%); opacity: 0; }
 
-/* Tambahan untuk error handling */
-.loading-container {
-    min-height: 400px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
+/* HAPUS atau KOMENTARI animasi pulse yang mengganggu */
+/*
+.loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.error-container {
-    text-align: center;
-    padding: 60px 20px;
-    max-width: 500px;
-    margin: 0 auto;
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+*/
+
+/* Tambahan untuk image di reader */
+#content-area img {
+    max-width: 100%;
+    height: auto;
+    display: block;
 }
 
-.error-container h2 {
-    color: #f59e0b;
-    font-size: 1.8rem;
-    margin-bottom: 20px;
+/* Smooth image loading */
+img {
+    transition: opacity 0.3s ease;
 }
 
-.error-container p {
-    color: #94a3b8;
-    margin-bottom: 30px;
-    line-height: 1.6;
+img[loading="lazy"] {
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .line-clamp-2 {
@@ -111,14 +118,4 @@ body {
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
-}
-
-/* Loading animation */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.loading-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
