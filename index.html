@@ -7,6 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FmcComic - Ultimate Reader Pro</title>
     
+    <!-- Custom Favicon -->
+    <link rel="icon" href="assets/icon.png" type="image/jpeg">
+
     <!-- Library Eksternal -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -23,9 +26,14 @@
     <nav id="main-nav" class="fixed top-0 w-full z-50 glass border-b border-white/5 transition-transform duration-300">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-8">
-                <h1 class="text-2xl font-bold text-amber-500 cursor-pointer flex items-center gap-2" onclick="showHome()">
-                    <i class="fa fa-book-open"></i> Fmc<span class="text-white">Comic</span>
-                </h1>
+                <!-- Logo dengan Gambar -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="showHome()">
+                    <img src="assets/icon.png" class="w-9 h-9 rounded-xl object-cover border border-amber-500/50 shadow-lg shadow-amber-500/20">
+                    <h1 class="text-2xl font-bold text-amber-500">
+                        Fmc<span class="text-white">Comic</span>
+                    </h1>
+                </div>
+
                 <div class="hidden md:flex gap-6 text-sm font-medium">
                     <button onclick="showHome()" class="hover:text-amber-500 transition">Beranda</button>
                     <button onclick="showOngoing()" class="hover:text-amber-500 transition">Ongoing</button>
@@ -49,7 +57,7 @@
                         class="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-amber-500">
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="applyAdvancedFilter()" class="amber-gradient px-8 py-2 rounded-xl font-bold text-black text-sm">Cari</button>
+                    <button onclick="applyAdvancedFilter()" class="amber-gradient px-8 py-2 rounded-xl font-bold text-black text-sm hover:opacity-90 transition">Cari</button>
                 </div>
             </div>
         </div>
@@ -61,11 +69,11 @@
     </main>
 
     <!-- MOBILE BOTTOM NAV -->
-    <div id="mobile-nav" class="fixed bottom-0 w-full glass border-t border-white/5 flex justify-around p-3 md:hidden z-50 transition-transform">
-        <button onclick="showHome()" class="flex flex-col items-center gap-1 text-gray-400"><i class="fa fa-home text-lg"></i><span class="text-[10px]">Home</span></button>
-        <button onclick="showOngoing()" class="flex flex-col items-center gap-1 text-gray-400"><i class="fa fa-fire text-lg text-orange-500"></i><span class="text-[10px]">Hot</span></button>
-        <button onclick="showCompleted()" class="flex flex-col items-center gap-1 text-gray-400"><i class="fa fa-check-circle text-lg text-green-500"></i><span class="text-[10px]">Selesai</span></button>
-        <button onclick="showHistory()" class="flex flex-col items-center gap-1 text-gray-400"><i class="fa fa-history text-lg"></i><span class="text-[10px]">Riwayat</span></button>
+    <div id="mobile-nav" class="fixed bottom-0 w-full glass border-t border-white/5 flex justify-around p-3 md:hidden z-50 transition-transform duration-300">
+        <button onclick="showHome()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-home text-lg"></i><span class="text-[10px]">Home</span></button>
+        <button onclick="showOngoing()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-fire text-lg text-orange-500"></i><span class="text-[10px]">Hot</span></button>
+        <button onclick="showCompleted()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-check-circle text-lg text-green-500"></i><span class="text-[10px]">Selesai</span></button>
+        <button onclick="showHistory()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-history text-lg"></i><span class="text-[10px]">Riwayat</span></button>
     </div>
 
     <!-- Hubungkan ke JS Terpisah -->
