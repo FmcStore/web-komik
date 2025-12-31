@@ -71,7 +71,7 @@ async function loadGenres() {
     const data = await fetchAPI(`${API_BASE}/genres`);
     if(data && data.data) {
         const select = document.getElementById('filter-genre');
-        // Sort genres alphabetically
+       
         const sorted = data.data.sort((a, b) => a.title.localeCompare(b.title));
         
         select.innerHTML = '<option value="">Pilih Genre</option>';
@@ -159,15 +159,15 @@ async function showCompleted(page = 1) {
     renderGrid(data, "Komik Tamat (Selesai)", "showCompleted");
 }
 
-// --- GENRE FUNCTION (NEW) ---
+
 async function showGenre(slug, page = 1) {
     resetNavs();
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
-    // API Sesuai request: genre/slug/page
+    
     const data = await fetchAPI(`${API_BASE}/genre/${slug}/${page}`);
     
-    // Pass 'slug' sebagai extraArg ke renderGrid agar pagination tahu genre apa yang sedang dibuka
+  
     renderGrid(data, `Genre: ${slug.toUpperCase()}`, "showGenre", slug);
 }
 
@@ -180,21 +180,21 @@ async function applyAdvancedFilter() {
     filterPanel.classList.add('hidden');
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
-    // Prioritas 1: Search Text
+   
     if (query) {
         const data = await fetchAPI(`${API_BASE}/search/${encodeURIComponent(query)}/1`);
         renderGrid(data, `Hasil Pencarian: ${query}`, null);
         return;
     }
 
-    // Prioritas 2: Genre (Fitur Baru)
+    
     if (genre) {
-        // Jika genre dipilih, gunakan showGenre (API genre)
+      
         showGenre(genre, 1);
         return;
     }
 
-    // Prioritas 3: Filter Type/Status (List API)
+   
     let url = `${API_BASE}/list?page=1`;
     if (type) url += `&type=${type}`;
     if (status) url += `&status=${status}`;
@@ -204,7 +204,6 @@ async function applyAdvancedFilter() {
     renderGrid(data, "Hasil Filter", null);
 }
 
-// Updated renderGrid to support pagination with arguments (like genre slug)
 function renderGrid(data, title, funcName, extraArg = null) {
     const list = data?.data || [];
     if(list.length === 0) {
@@ -217,8 +216,7 @@ function renderGrid(data, title, funcName, extraArg = null) {
         const current = data.pagination.currentPage;
         const hasNext = data.pagination.hasNextPage;
         
-        // Buat string argument untuk fungsi onclick
-        // Jika ada extraArg (misal genre slug), tambahkan tanda kutip
+        
         const argStr = extraArg ? `'${extraArg}', ` : '';
 
         paginationHTML = `
@@ -318,7 +316,6 @@ async function showDetail(slug, push = true) {
     window.scrollTo(0,0);
 }
 
-// READER (Updated with Fullscreen Button)
 async function readChapter(chSlug, comicSlug, push = true) {
     if (push) updateURL(`/chapter/${chSlug}`);
 
