@@ -1,8 +1,36 @@
 {
   "rewrites": [
-    { 
-      "source": "/((?!404.html).*)", 
-      "destination": "/index.html" 
+    {
+      "source": "/series/:slug*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/chapter/:slug*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ongoing",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/completed",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/history",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/bookmarks",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/404.html",
+      "destination": "/404.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
