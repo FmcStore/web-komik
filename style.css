@@ -9,7 +9,7 @@ body {
     scroll-behavior: smooth; 
 }
 
-/* GRADIENT & GLASSMORPHISM */
+
 .amber-gradient { 
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
 }
@@ -32,7 +32,7 @@ body {
     border-radius: 5px;
 }
 
-/* HOVER EFFECTS */
+
 .card-hover { 
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
 }
@@ -43,7 +43,7 @@ body {
     box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.3); 
 }
 
-/* READER PROGRESS BAR */
+
 #progress-bar { 
     transition: width 0.1s ease; 
     height: 3px; 
@@ -54,7 +54,7 @@ body {
     z-index: 100; 
 }
 
-/* BADGE TYPE COLORS */
+
 .type-badge {
     position: absolute;
     top: 10px;
@@ -74,7 +74,7 @@ body {
 .type-manhua { background: #dc2626; color: #fff; } /* Merah */
 .type-default { background: #4b5563; color: #fff; }
 
-/* READER UI ANIMATION */
+
 .reader-ui { transition: transform 0.3s ease, opacity 0.3s ease; }
 .ui-hidden-top { transform: translateY(-100%); opacity: 0; }
 .ui-hidden-bottom { transform: translateY(100%); opacity: 0; }
