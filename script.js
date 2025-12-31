@@ -10,6 +10,8 @@ const filterPanel = document.getElementById('filter-panel');
 const mainNav = document.getElementById('main-nav');
 const mobileNav = document.getElementById('mobile-nav');
 
+let currentChapterList = [];
+
 function getTypeClass(type) {
     if (!type) return 'type-default';
     const t = type.toLowerCase();
@@ -40,13 +42,11 @@ function resetNavs() {
     filterPanel.classList.add('hidden');
 }
 
-
 function updateURL(path) {
     if (window.location.pathname !== path) {
         history.pushState(null, null, path);
     }
 }
-
 
 async function showHome(push = true) {
     if (push) updateURL('/'); 
@@ -104,7 +104,7 @@ async function showHome(push = true) {
     window.scrollTo(0,0);
 }
 
-// ONGOING (HOT)
+// ONGOING
 async function showOngoing(page = 1) {
     updateURL('/ongoing');
     resetNavs();
@@ -120,13 +120,26 @@ async function showCompleted(page = 1) {
     renderGrid(data, "Komik Tamat (Selesai)", "showCompleted");
 }
 
+// FILTER & SEARCH LOGIC (UPDATED)
 async function applyAdvancedFilter() {
     const query = document.getElementById('search-input').value;
-    if(!query) return;
+    const type = document.getElementById('filter-type').value;
+    const status = document.getElementById('filter-status').value;
+
     filterPanel.classList.add('hidden');
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
-    const data = await fetchAPI(`${API_BASE}/search/${encodeURIComponent(query)}/1`);
-    renderGrid(data, `Hasil Pencarian: ${query}`, null);
+    
+    let url = `${API_BASE}/list?page=1`;
+    if (query) {
+        url = `${API_BASE}/search/${encodeURIComponent(query)}/1`;
+    } else {
+        if (type) url += `&type=${type}`;
+        if (status) url += `&status=${status}`;
+        url += `&orderby=popular`; // Default sort
+    }
+
+    const data = await fetchAPI(url);
+    renderGrid(data, query ? `Hasil Pencarian: ${query}` : "Hasil Filter", null);
 }
 
 function renderGrid(data, title, funcName) {
@@ -169,7 +182,7 @@ function renderGrid(data, title, funcName) {
     window.scrollTo(0,0);
 }
 
-
+// DETAIL PAGE (UPDATED: Added Genres & Info Row)
 async function showDetail(slug, push = true) {
     if (push) updateURL(`/series/${slug}`);
 
@@ -180,6 +193,9 @@ async function showDetail(slug, push = true) {
     if(!data) return;
 
     const res = data.data;
+    
+    currentChapterList = res.chapters;
+
     const history = JSON.parse(localStorage.getItem('fmc_history') || '[]');
     const savedItem = history.find(h => h.slug === slug);
     
@@ -206,15 +222,24 @@ async function showDetail(slug, push = true) {
                 </div>
             </div>
             <div class="md:w-2/3">
-                <h1 class="text-3xl font-extrabold mb-4">${res.title}</h1>
-                <div class="flex flex-wrap gap-4 mb-6 text-sm">
-                    <span class="text-green-400 font-bold bg-green-400/10 px-3 py-1 rounded-full border border-green-400/20">${res.status}</span>
-                    <span class="text-amber-500 font-bold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">⭐ ${res.rating}</span>
+                <!-- GENRE SECTION RESTORED -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    ${res.genres ? res.genres.map(g => `<span class="bg-amber-500/10 text-amber-500 text-[10px] px-3 py-1 rounded-full font-bold uppercase border border-amber-500/20">${g.title}</span>`).join('') : ''}
                 </div>
-                <p class="text-gray-400 text-sm leading-relaxed mb-8">${res.synopsis || "Sinopsis tidak tersedia."}</p>
+                
+                <h1 class="text-3xl font-extrabold mb-4">${res.title}</h1>
+                
+                <!-- STATUS, RATING, TYPE RESTORED -->
+                <div class="flex gap-6 mb-6 text-sm bg-white/5 p-4 rounded-2xl w-fit border border-white/5">
+                    <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Status</span><span class="text-green-400 font-bold">${res.status}</span></div>
+                    <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Rating</span><span class="text-amber-500 font-bold">⭐ ${res.rating}</span></div>
+                    <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Type</span><span class="text-white font-bold">${res.type}</span></div>
+                </div>
+
+                <p class="text-gray-400 text-sm leading-relaxed mb-8 text-justify">${res.synopsis || "Sinopsis tidak tersedia."}</p>
                 <div class="glass rounded-3xl p-6 border-white/5">
                     <h3 class="text-lg font-bold mb-4">Daftar Chapter</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-96 overflow-y-auto pr-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-96 overflow-y-auto pr-2 custom-scroll">
                         ${res.chapters.map(ch => `
                             <div onclick="readChapter('${ch.slug}', '${slug}')" class="bg-white/5 p-3 rounded-xl cursor-pointer hover:bg-amber-500 hover:text-black transition text-sm flex justify-between">
                                 <span>${ch.title}</span>
@@ -230,6 +255,7 @@ async function showDetail(slug, push = true) {
     window.scrollTo(0,0);
 }
 
+// READER (UPDATED: UI Logic & Dropdown Select)
 async function readChapter(chSlug, comicSlug, push = true) {
     if (push) updateURL(`/chapter/${chSlug}`);
 
@@ -241,8 +267,19 @@ async function readChapter(chSlug, comicSlug, push = true) {
     if(!data) return;
 
     const res = data.data;
-
     const backAction = comicSlug ? `showDetail('${comicSlug}')` : `showHome()`;
+
+    // Generate Dropdown Options if available
+    let dropdownHTML = '';
+    if (currentChapterList && currentChapterList.length > 0) {
+        dropdownHTML = `
+            <select onchange="readChapter(this.value, '${comicSlug}')" class="bg-black/80 text-white border border-white/20 rounded-lg text-xs p-2 mx-2 max-w-[150px]">
+                ${currentChapterList.map(ch => `<option value="${ch.slug}" ${ch.slug === chSlug ? 'selected' : ''}>${ch.title}</option>`).join('')}
+            </select>
+        `;
+    } else {
+        dropdownHTML = `<span class="text-xs font-bold px-4">Navigasi</span>`;
+    }
 
     contentArea.innerHTML = `
         <div class="relative min-h-screen bg-black -mx-4 -mt-24">
@@ -251,14 +288,19 @@ async function readChapter(chSlug, comicSlug, push = true) {
                 <h2 class="text-xs font-bold truncate text-amber-500 max-w-[200px]">${chSlug.replace(/-/g, ' ')}</h2>
                 <div class="w-10"></div>
             </div>
+            
+            <!-- Click image area to toggle UI -->
             <div class="flex flex-col items-center pt-20 pb-40" onclick="toggleReaderUI()">
-                ${res.images.map(img => `<img src="${img}" class="max-w-full md:max-w-3xl" loading="lazy">`).join('')}
+                ${res.images.map(img => `<img src="${img}" class="max-w-full md:max-w-3xl mb-1" loading="lazy">`).join('')}
             </div>
-            <div id="reader-bottom" class="reader-ui fixed bottom-6 left-0 w-full z-[60] px-4 flex justify-center">
-                <div class="glass p-3 rounded-2xl flex gap-6 items-center shadow-2xl border border-white/10">
-                    <button onclick="${res.navigation.prev ? `readChapter('${res.navigation.prev}', '${comicSlug || ''}')` : ''}" class="p-4 bg-white/5 rounded-xl ${!res.navigation.prev ? 'opacity-10' : 'hover:bg-amber-500 hover:text-black transition'}"><i class="fa fa-chevron-left"></i></button>
-                    <span class="text-xs font-bold px-4">Navigasi</span>
-                    <button onclick="${res.navigation.next ? `readChapter('${res.navigation.next}', '${comicSlug || ''}')` : ''}" class="p-4 amber-gradient text-black rounded-xl ${!res.navigation.next ? 'opacity-10' : 'hover:scale-105 transition'}"><i class="fa fa-chevron-right"></i></button>
+            
+            <div id="reader-bottom" class="reader-ui fixed bottom-6 left-0 w-full z-[60] px-4 flex justify-center pointer-events-none">
+                <div class="glass p-3 rounded-2xl flex gap-2 items-center shadow-2xl border border-white/10 pointer-events-auto">
+                    <button onclick="${res.navigation.prev ? `readChapter('${res.navigation.prev}', '${comicSlug || ''}')` : ''}" class="p-3 bg-white/10 rounded-xl ${!res.navigation.prev ? 'opacity-20' : 'hover:bg-amber-500 hover:text-black transition'}"><i class="fa fa-chevron-left"></i></button>
+                    
+                    ${dropdownHTML}
+
+                    <button onclick="${res.navigation.next ? `readChapter('${res.navigation.next}', '${comicSlug || ''}')` : ''}" class="p-3 amber-gradient text-black rounded-xl ${!res.navigation.next ? 'opacity-20' : 'hover:scale-105 transition'}"><i class="fa fa-chevron-right"></i></button>
                 </div>
             </div>
         </div>
@@ -276,7 +318,6 @@ function toggleReaderUI() {
 }
 
 function handleSearch(e) { if(e.key === 'Enter') applyAdvancedFilter(); }
-
 
 function saveHistory(slug, title, image, chSlug, chTitle) {
     let history = JSON.parse(localStorage.getItem('fmc_history') || '[]');
@@ -313,8 +354,10 @@ function checkBookmarkStatus(slug) {
     const btn = document.getElementById('btn-bookmark');
     if (btn && bookmarks.some(b => b.slug === slug)) {
         btn.innerHTML = `<i class="fa fa-check text-amber-500"></i> Tersimpan`;
+        btn.classList.add('border-amber-500');
     } else if (btn) {
         btn.innerHTML = `<i class="fa fa-bookmark"></i> Simpan Koleksi`;
+        btn.classList.remove('border-amber-500');
     }
 }
 
@@ -334,18 +377,15 @@ function handleInitialLoad() {
     resetNavs(); 
 
     if (path === '/' || path === '/index.html') {
-        showHome(false); // false = jangan pushState karena kita sudah di URL tsb
+        showHome(false); 
     } 
     else if (path.startsWith('/series/')) {
-        //  slug dari URL: /series/nama-komik
         const parts = path.split('/');
-        // parts[0] = "", parts[1] = "series", parts[2] = "nama-komik"
         const slug = parts[2];
         if (slug) showDetail(slug, false);
         else showHome(false);
     } 
     else if (path.startsWith('/chapter/')) {
-        // slug dari URL: /chapter/nama-chapter
         const parts = path.split('/');
         const slug = parts[2];
         if (slug) readChapter(slug, null, false); 
@@ -356,6 +396,3 @@ function handleInitialLoad() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    handleInitialLoad();
-});
