@@ -12,7 +12,6 @@ const mobileNav = document.getElementById('mobile-nav');
 
 let currentChapterList = [];
 
-
 function getTypeClass(type) {
     if (!type) return 'type-default';
     const t = type.toLowerCase();
@@ -22,6 +21,9 @@ function getTypeClass(type) {
     return 'type-default';
 }
 
+function redirectTo404() {
+    window.location.href = '/404.html';
+}
 
 async function fetchAPI(url) {
     try {
@@ -31,12 +33,13 @@ async function fetchAPI(url) {
             return data.result?.content || data.result || data;
         }
         return null;
-    } catch (e) { return null; }
+    } catch (e) { 
+        return null; 
+    }
 }
 
 function toggleFilter() {
     filterPanel.classList.toggle('hidden');
-
     const genreSelect = document.getElementById('filter-genre');
     if (genreSelect.options.length <= 1) {
         loadGenres();
@@ -71,7 +74,6 @@ async function loadGenres() {
     const data = await fetchAPI(`${API_BASE}/genres`);
     if(data && data.data) {
         const select = document.getElementById('filter-genre');
-       
         const sorted = data.data.sort((a, b) => a.title.localeCompare(b.title));
         
         select.innerHTML = '<option value="">Pilih Genre</option>';
@@ -84,7 +86,6 @@ async function loadGenres() {
     }
 }
 
-
 async function showHome(push = true) {
     if (push) updateURL('/'); 
     
@@ -92,8 +93,9 @@ async function showHome(push = true) {
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     const data = await fetchAPI(`${API_BASE}/home`);
-    if(!data) {
-        contentArea.innerHTML = `<div class="text-center py-40 text-gray-500">Gagal memuat data. Periksa koneksi.</div>`;
+    
+    if(!data || !data.data) {
+        redirectTo404();
         return;
     }
 
@@ -159,42 +161,40 @@ async function showCompleted(page = 1) {
     renderGrid(data, "Komik Tamat (Selesai)", "showCompleted");
 }
 
-
 async function showGenre(slug, page = 1) {
     resetNavs();
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
-    
     const data = await fetchAPI(`${API_BASE}/genre/${slug}/${page}`);
     
-  
+    if(!data || !data.data || data.data.length === 0) {
+        redirectTo404();
+        return;
+    }
+    
     renderGrid(data, `Genre: ${slug.toUpperCase()}`, "showGenre", slug);
 }
 
 async function applyAdvancedFilter() {
     const query = document.getElementById('search-input').value;
-    const genre = document.getElementById('filter-genre').value; // Ambil nilai genre
+    const genre = document.getElementById('filter-genre').value;
     const type = document.getElementById('filter-type').value;
     const status = document.getElementById('filter-status').value;
 
     filterPanel.classList.add('hidden');
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
-   
     if (query) {
         const data = await fetchAPI(`${API_BASE}/search/${encodeURIComponent(query)}/1`);
         renderGrid(data, `Hasil Pencarian: ${query}`, null);
         return;
     }
 
-    
     if (genre) {
-      
         showGenre(genre, 1);
         return;
     }
 
-   
     let url = `${API_BASE}/list?page=1`;
     if (type) url += `&type=${type}`;
     if (status) url += `&status=${status}`;
@@ -206,6 +206,7 @@ async function applyAdvancedFilter() {
 
 function renderGrid(data, title, funcName, extraArg = null) {
     const list = data?.data || [];
+    
     if(list.length === 0) {
         contentArea.innerHTML = `<div class="text-center py-40 text-gray-500"><p>Komik tidak ditemukan.</p></div>`;
         return;
@@ -215,8 +216,6 @@ function renderGrid(data, title, funcName, extraArg = null) {
     if (data.pagination && funcName) {
         const current = data.pagination.currentPage;
         const hasNext = data.pagination.hasNextPage;
-        
-        
         const argStr = extraArg ? `'${extraArg}', ` : '';
 
         paginationHTML = `
@@ -254,7 +253,11 @@ async function showDetail(slug, push = true) {
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     const data = await fetchAPI(`${API_BASE}/detail/${slug}`);
-    if(!data) return;
+    
+    if(!data || !data.data) {
+        redirectTo404();
+        return;
+    }
 
     const res = data.data;
     currentChapterList = res.chapters;
@@ -324,7 +327,11 @@ async function readChapter(chSlug, comicSlug, push = true) {
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     const data = await fetchAPI(`${API_BASE}/chapter/${chSlug}`);
-    if(!data) return;
+    
+    if(!data || !data.data) {
+        redirectTo404();
+        return;
+    }
 
     const res = data.data;
     const backAction = comicSlug ? `showDetail('${comicSlug}')` : `showHome()`;
@@ -342,13 +349,11 @@ async function readChapter(chSlug, comicSlug, push = true) {
 
     contentArea.innerHTML = `
         <div class="relative min-h-screen bg-black -mx-4 -mt-24">
-            <!-- HEADER READER (Added Fullscreen Button) -->
             <div id="reader-top" class="reader-ui fixed top-0 w-full glass z-[60] p-4 flex justify-between items-center border-b border-white/10">
                 <div class="flex items-center gap-2">
                     <button onclick="${backAction}" class="p-2 hover:bg-white/10 rounded-full"><i class="fa fa-arrow-left"></i></button>
                     <h2 class="text-xs font-bold truncate text-amber-500 max-w-[150px] md:max-w-xs">${chSlug.replace(/-/g, ' ')}</h2>
                 </div>
-                <!-- Fullscreen Button -->
                 <button onclick="toggleFullScreen()" class="p-2 hover:bg-white/10 rounded-full text-white/80">
                     <i class="fa fa-expand"></i>
                 </button>
@@ -437,6 +442,8 @@ function handleInitialLoad() {
     
     resetNavs(); 
 
+    if (path === '/404.html') return;
+
     if (path.startsWith('/series/')) {
         const parts = path.split('/');
         const slug = parts[2];
@@ -455,8 +462,6 @@ function handleInitialLoad() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    
     loadGenres();
-    
     handleInitialLoad();
 });
