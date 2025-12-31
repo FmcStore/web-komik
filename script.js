@@ -24,8 +24,9 @@ function getTypeClass(type) {
 
 function showError(message, retryFunction = null) {
     contentArea.innerHTML = `
-        <div class="error-container">
-            <h2 class="text-3xl font-bold mb-4">😢 ${message}</h2>
+        <div class="text-center py-20">
+            <div class="text-amber-500 text-6xl mb-4">😢</div>
+            <h2 class="text-2xl font-bold mb-2">${message}</h2>
             <p class="text-gray-400 mb-6">Silakan coba lagi nanti atau hubungi admin jika masalah berlanjut.</p>
             ${retryFunction ? `
                 <button onclick="${retryFunction}" class="amber-gradient px-6 py-3 rounded-xl font-bold text-black mr-3">
@@ -43,11 +44,11 @@ function redirectTo404() {
     window.location.href = '/404.html';
 }
 
-async function fetchAPI(url, retries = 3) {
+async function fetchAPI(url, retries = 2) {
     for (let i = 0; i < retries; i++) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             
             const response = await fetch(API_PROXY + encodeURIComponent(url), {
                 signal: controller.signal,
@@ -68,22 +69,11 @@ async function fetchAPI(url, retries = 3) {
                 return data.result?.content || data.result || data;
             }
             
-            console.error('API returned error:', data);
-            
         } catch (e) {
             console.error(`Attempt ${i + 1} failed:`, e.message);
             if (i === retries - 1) {
-                // Last attempt, try direct fetch without proxy
-                try {
-                    console.log('Trying direct fetch...');
-                    const directResponse = await fetch(url);
-                    return await directResponse.json();
-                } catch (directError) {
-                    console.error('Direct fetch also failed:', directError);
-                    throw e;
-                }
+                return null;
             }
-            // Wait before retry (exponential backoff)
             await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
         }
     }
@@ -147,9 +137,8 @@ async function showHome(push = true) {
     
     resetNavs();
     contentArea.innerHTML = `
-        <div class="loading-container">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-amber-500 mb-4"></div>
-            <p class="text-gray-400">Memuat komik terbaru...</p>
+        <div class="flex justify-center items-center py-40">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div>
         </div>
     `;
     
@@ -162,24 +151,15 @@ async function showHome(push = true) {
         }
 
         contentArea.innerHTML = `
-            <section class="mb-12">
-                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-                    <i class="fa fa-bolt text-amber-500"></i> Komik Populer
-                </h2>
-                <div class="flex overflow-x-auto gap-6 hide-scroll pb-6 px-1">
+            <section class="mb-10">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2"><i class="fa fa-bolt text-amber-500"></i> Populer</h2>
+                <div class="flex overflow-x-auto gap-4 hide-scroll pb-4">
                     ${data.data.hotUpdates.map(item => `
-                        <div class="min-w-[180px] md:min-w-[220px] cursor-pointer card-hover relative group" onclick="showDetail('${item.slug}')">
-                            <div class="relative overflow-hidden rounded-2xl">
-                                <span class="type-badge ${getTypeClass(item.type)}">${item.type || 'Hot'}</span>
-                                <img src="${item.image}" 
-                                     class="h-64 md:h-80 w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                     onerror="this.src='https://via.placeholder.com/300x400/1f2937/9ca3af?text=Cover'">
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                            </div>
-                            <div class="mt-4">
-                                <h3 class="font-bold line-clamp-2 group-hover:text-amber-500 transition">${item.title}</h3>
-                                <p class="text-amber-500 text-sm mt-1">${item.chapter || item.latestChapter || 'Ch.?'}</p>
-                            </div>
+                        <div class="min-w-[160px] md:min-w-[200px] cursor-pointer card-hover relative" onclick="showDetail('${item.slug}')">
+                            <span class="type-badge ${getTypeClass(item.type)}">${item.type || 'Hot'}</span>
+                            <img src="${item.image}" class="h-60 md:h-72 w-full object-cover rounded-2xl shadow-xl">
+                            <h3 class="mt-3 text-sm font-bold truncate">${item.title}</h3>
+                            <p class="text-amber-500 text-xs">${item.chapter || item.latestChapter}</p>
                         </div>
                     `).join('')}
                 </div>
@@ -187,39 +167,29 @@ async function showHome(push = true) {
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 <div class="lg:col-span-2">
-                    <h2 class="text-2xl font-bold mb-6 border-l-4 border-amber-500 pl-4">Rilis Terbaru</h2>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <h2 class="text-xl font-bold mb-6 border-l-4 border-amber-500 pl-4">Terbaru</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         ${data.data.latestReleases.slice(0, 12).map(item => `
-                            <div class="bg-white/5 border border-white/10 p-3 rounded-2xl cursor-pointer hover:border-amber-500/50 transition group" onclick="showDetail('${item.slug}')">
-                                <div class="relative overflow-hidden rounded-xl mb-3">
-                                    <img src="${item.image}" 
-                                         class="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                         onerror="this.src='https://via.placeholder.com/200x300/1f2937/9ca3af?text=Cover'">
-                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                                        <p class="text-[10px] text-amber-500 font-bold">${item.chapters[0]?.title || 'Ch.?'}</p>
-                                    </div>
-                                </div>
-                                <h3 class="text-sm font-bold line-clamp-2 group-hover:text-amber-500 transition">${item.title}</h3>
+                            <div class="bg-zinc-900/30 border border-white/5 p-2 rounded-2xl cursor-pointer hover:border-amber-500/50 transition relative group" onclick="showDetail('${item.slug}')">
+                                <img src="${item.image}" class="h-44 w-full object-cover rounded-xl">
+                                <h3 class="text-xs font-bold mt-2 line-clamp-2 h-8">${item.title}</h3>
+                                <p class="text-[10px] text-gray-500 mt-1">${item.chapters[0]?.title || 'Ch.?'}</p>
                             </div>
                         `).join('')}
                     </div>
                 </div>
                 <div>
-                    <h2 class="text-2xl font-bold mb-6 border-l-4 border-amber-500 pl-4">Proyek Terbaru</h2>
+                    <h2 class="text-xl font-bold mb-6 border-l-4 border-amber-500 pl-4">Proyek Kami</h2>
                     <div class="space-y-4">
-                        ${data.data.projectUpdates?.map(item => `
-                            <div class="flex gap-4 bg-white/5 p-3 rounded-2xl cursor-pointer hover:bg-white/10 transition group" onclick="showDetail('${item.slug}')">
-                                <div class="flex-shrink-0">
-                                    <img src="${item.image}" 
-                                         class="w-20 h-28 rounded-xl object-cover group-hover:scale-105 transition-transform duration-300"
-                                         onerror="this.src='https://via.placeholder.com/80x112/1f2937/9ca3af?text=Cover'">
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h3 class="font-bold text-sm line-clamp-2 group-hover:text-amber-500 transition">${item.title}</h3>
-                                    <p class="text-amber-500 text-xs mt-2">${item.chapters[0]?.title || 'Ch.?'}</p>
+                        ${data.data.projectUpdates.map(item => `
+                            <div class="flex gap-4 bg-zinc-900/20 p-2 rounded-2xl cursor-pointer hover:bg-white/5 transition" onclick="showDetail('${item.slug}')">
+                                <img src="${item.image}" class="w-16 h-20 rounded-xl object-cover">
+                                <div class="flex-1 flex flex-col justify-center overflow-hidden">
+                                    <h3 class="font-bold text-xs truncate">${item.title}</h3>
+                                    <p class="text-amber-500 text-[10px] mt-1">${item.chapters[0]?.title}</p>
                                 </div>
                             </div>
-                        `).join('') || '<p class="text-gray-400 text-center py-8">Tidak ada data</p>'}
+                        `).join('')}
                     </div>
                 </div>
             </div>
@@ -229,22 +199,17 @@ async function showHome(push = true) {
         showError('Gagal memuat beranda', 'showHome()');
     }
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0,0);
 }
 
 async function showOngoing(page = 1) {
     updateURL('/ongoing');
     resetNavs();
-    contentArea.innerHTML = `
-        <div class="loading-container">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div>
-            <p class="text-gray-400 mt-4">Memuat komik ongoing...</p>
-        </div>
-    `;
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     try {
         const data = await fetchAPI(`${API_BASE}/list?status=Ongoing&orderby=popular&page=${page}`);
-        renderGrid(data, "🔥 Komik Ongoing Terpopuler", "showOngoing");
+        renderGrid(data, "Komik Ongoing Terpopuler", "showOngoing");
     } catch (error) {
         console.error('Error in showOngoing:', error);
         showError('Gagal memuat komik ongoing', `showOngoing(${page})`);
@@ -252,18 +217,12 @@ async function showOngoing(page = 1) {
 }
 
 async function showCompleted(page = 1) {
-    updateURL('/completed');
     resetNavs();
-    contentArea.innerHTML = `
-        <div class="loading-container">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div>
-            <p class="text-gray-400 mt-4">Memuat komik tamat...</p>
-        </div>
-    `;
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     try {
         const data = await fetchAPI(`${API_BASE}/list?status=Completed&orderby=popular&page=${page}`);
-        renderGrid(data, "✅ Komik Tamat (Selesai)", "showCompleted");
+        renderGrid(data, "Komik Tamat (Selesai)", "showCompleted");
     } catch (error) {
         console.error('Error in showCompleted:', error);
         showError('Gagal memuat komik tamat', `showCompleted(${page})`);
@@ -272,21 +231,16 @@ async function showCompleted(page = 1) {
 
 async function showGenre(slug, page = 1) {
     resetNavs();
-    contentArea.innerHTML = `
-        <div class="loading-container">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div>
-            <p class="text-gray-400 mt-4">Memuat genre ${slug}...</p>
-        </div>
-    `;
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     try {
         const data = await fetchAPI(`${API_BASE}/genre/${slug}/${page}`);
         
         if(!data || !data.data || data.data.length === 0) {
             contentArea.innerHTML = `
-                <div class="error-container">
+                <div class="text-center py-20">
                     <h2 class="text-2xl font-bold text-amber-500 mb-4">Genre Tidak Ditemukan</h2>
-                    <p class="text-gray-400 mb-6">Genre "${slug}" tidak ditemukan atau tidak memiliki komik.</p>
+                    <p class="text-gray-400 mb-6">Genre "${slug}" tidak ditemukan.</p>
                     <button onclick="showHome()" class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
                         Kembali ke Beranda
                     </button>
@@ -295,7 +249,7 @@ async function showGenre(slug, page = 1) {
             return;
         }
         
-        renderGrid(data, `🎭 Genre: ${slug.charAt(0).toUpperCase() + slug.slice(1)}`, "showGenre", slug);
+        renderGrid(data, `Genre: ${slug.toUpperCase()}`, "showGenre", slug);
     } catch (error) {
         console.error('Error in showGenre:', error);
         showError(`Gagal memuat genre ${slug}`, `showGenre('${slug}', ${page})`);
@@ -303,23 +257,18 @@ async function showGenre(slug, page = 1) {
 }
 
 async function applyAdvancedFilter() {
-    const query = document.getElementById('search-input').value.trim();
+    const query = document.getElementById('search-input').value;
     const genre = document.getElementById('filter-genre').value;
     const type = document.getElementById('filter-type').value;
     const status = document.getElementById('filter-status').value;
 
     filterPanel.classList.add('hidden');
-    contentArea.innerHTML = `
-        <div class="loading-container">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div>
-            <p class="text-gray-400 mt-4">Mencari komik...</p>
-        </div>
-    `;
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     try {
         if (query) {
             const data = await fetchAPI(`${API_BASE}/search/${encodeURIComponent(query)}/1`);
-            renderGrid(data, `🔍 Hasil Pencarian: "${query}"`, null);
+            renderGrid(data, `Hasil Pencarian: ${query}`, null);
             return;
         }
 
@@ -334,7 +283,7 @@ async function applyAdvancedFilter() {
         url += `&orderby=popular`;
 
         const data = await fetchAPI(url);
-        renderGrid(data, "🎯 Hasil Filter", null);
+        renderGrid(data, "Hasil Filter", null);
     } catch (error) {
         console.error('Error in applyAdvancedFilter:', error);
         showError('Gagal menerapkan filter', 'applyAdvancedFilter()');
@@ -345,71 +294,42 @@ function renderGrid(data, title, funcName, extraArg = null) {
     const list = data?.data || [];
     
     if(list.length === 0) {
-        contentArea.innerHTML = `
-            <div class="text-center py-20">
-                <div class="text-amber-500 text-6xl mb-4">📚</div>
-                <h2 class="text-2xl font-bold mb-2">${title}</h2>
-                <p class="text-gray-400 mb-6">Komik tidak ditemukan.</p>
-                <button onclick="showHome()" class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
-                    Kembali ke Beranda
-                </button>
-            </div>
-        `;
+        contentArea.innerHTML = `<div class="text-center py-40 text-gray-500"><p>Komik tidak ditemukan.</p></div>`;
         return;
     }
 
     let paginationHTML = '';
     if (data.pagination && funcName) {
-        const current = data.pagination.currentPage || 1;
+        const current = data.pagination.currentPage;
         const hasNext = data.pagination.hasNextPage;
         const argStr = extraArg ? `'${extraArg}', ` : '';
 
         paginationHTML = `
-            <div class="mt-14 flex justify-center items-center gap-4">
-                ${current > 1 ? `
-                    <button onclick="${funcName}(${argStr}${current - 1})" 
-                            class="glass px-5 py-2 rounded-xl text-sm hover:bg-amber-500 hover:text-black transition flex items-center gap-2">
-                        <i class="fa fa-chevron-left"></i> Prev
-                    </button>
-                ` : ''}
-                
-                <span class="bg-amber-500/20 text-amber-500 px-4 py-2 rounded-xl text-sm font-bold">
-                    Halaman ${current}
-                </span>
-                
-                ${hasNext ? `
-                    <button onclick="${funcName}(${argStr}${current + 1})" 
-                            class="glass px-5 py-2 rounded-xl text-sm hover:bg-amber-500 hover:text-black transition flex items-center gap-2">
-                        Next <i class="fa fa-chevron-right"></i>
-                    </button>
-                ` : ''}
+            <div class="mt-14 flex justify-center items-center gap-6">
+                ${current > 1 ? `<button onclick="${funcName}(${argStr}${current - 1})" class="glass px-6 py-2 rounded-xl text-xs hover:bg-amber-500 hover:text-black transition">Prev</button>` : ''}
+                <span class="bg-amber-500 text-black px-6 py-2 rounded-xl text-xs font-extrabold">${current}</span>
+                ${hasNext ? `<button onclick="${funcName}(${argStr}${current + 1})" class="glass px-6 py-2 rounded-xl text-xs hover:bg-amber-500 hover:text-black transition">Next</button>` : ''}
             </div>
         `;
     }
 
     contentArea.innerHTML = `
         <h2 class="text-2xl font-bold mb-8 border-l-4 border-amber-500 pl-4">${title}</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             ${list.map(item => `
-                <div class="bg-white/5 rounded-2xl overflow-hidden border border-white/10 card-hover cursor-pointer relative group" onclick="showDetail('${item.slug}')">
-                    <div class="relative overflow-hidden">
-                        <span class="type-badge ${getTypeClass(item.type)}">${item.type || 'Comic'}</span>
-                        <img src="${item.image}" 
-                             class="h-56 w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                             onerror="this.src='https://via.placeholder.com/300x400/1f2937/9ca3af?text=Cover'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="text-sm font-bold line-clamp-2 group-hover:text-amber-500 transition h-10">${item.title}</h3>
-                        <p class="text-amber-500 text-xs mt-2">${item.latestChapter || item.chapter || 'Baca'}</p>
+                <div class="bg-zinc-900/40 rounded-2xl overflow-hidden border border-white/5 card-hover cursor-pointer relative group" onclick="showDetail('${item.slug}')">
+                    <span class="type-badge ${getTypeClass(item.type)}">${item.type || 'Comic'}</span>
+                    <img src="${item.image}" class="h-64 w-full object-cover">
+                    <div class="p-3 text-center">
+                        <h3 class="text-xs font-bold truncate group-hover:text-amber-500 transition">${item.title}</h3>
+                        <p class="text-[10px] text-amber-500 mt-1">${item.latestChapter || item.chapter || 'Baca'}</p>
                     </div>
                 </div>
             `).join('')}
         </div>
         ${paginationHTML}
     `;
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0,0);
 }
 
 async function showDetail(slug, push = true) {
@@ -418,149 +338,71 @@ async function showDetail(slug, push = true) {
     if (push) updateURL(`/series/${slug}`);
 
     resetNavs(); 
-    contentArea.innerHTML = `
-        <div class="loading-container">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-amber-500 mb-4"></div>
-            <p class="text-gray-400">Memuat detail komik...</p>
-        </div>
-    `;
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     try {
         const data = await fetchAPI(`${API_BASE}/detail/${slug}`);
         
         if(!data || !data.data) {
-            contentArea.innerHTML = `
-                <div class="error-container">
-                    <h2 class="text-3xl font-bold text-amber-500 mb-4">Komik Tidak Ditemukan</h2>
-                    <p class="text-gray-400 mb-6">Komik dengan judul "${slug}" tidak ditemukan.</p>
-                    <button onclick="showHome()" class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
-                        Kembali ke Beranda
-                    </button>
-                </div>
-            `;
+            redirectTo404();
             return;
         }
 
         const res = data.data;
-        currentChapterList = res.chapters || [];
+        currentChapterList = res.chapters;
 
         const history = JSON.parse(localStorage.getItem('fmc_history') || '[]');
         const savedItem = history.find(h => h.slug === slug);
         
-        const startBtnText = savedItem && savedItem.lastChapterTitle ? 
-            `Lanjut: ${savedItem.lastChapterTitle}` : 
-            "Baca Chapter Pertama";
-            
+        const startBtnText = savedItem && savedItem.lastChapterTitle ? `Lanjut: ${savedItem.lastChapterTitle}` : "Baca Chapter Pertama";
         const startBtnAction = savedItem && savedItem.lastChapterSlug ? 
             `readChapter('${savedItem.lastChapterSlug}', '${slug}')` : 
-            `readChapter('${currentChapterList[currentChapterList.length - 1]?.slug || ''}', '${slug}')`;
-
-        const hasChapters = currentChapterList.length > 0;
+            `readChapter('${res.chapters[res.chapters.length - 1].slug}', '${slug}')`;
 
         contentArea.innerHTML = `
-            <div class="flex flex-col lg:flex-row gap-8">
-                <div class="lg:w-1/3">
-                    <div class="sticky top-24">
-                        <div class="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                            <span class="type-badge ${getTypeClass(res.type)} scale-125 top-5 left-5">${res.type || 'Comic'}</span>
-                            <img src="${res.image}" 
-                                 class="w-full aspect-[3/4] object-cover"
-                                 onerror="this.src='https://via.placeholder.com/400x600/1f2937/9ca3af?text=Cover'">
-                        </div>
-                        
-                        <div class="mt-6 space-y-3">
-                            <button onclick="${startBtnAction}" 
-                                    ${!hasChapters ? 'disabled' : ''}
-                                    class="amber-gradient w-full py-4 rounded-2xl font-bold text-black flex items-center justify-center gap-3 hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                                <i class="fa fa-play"></i> ${startBtnText}
-                            </button>
-                            
-                            <button onclick="toggleBookmark('${slug}', '${res.title.replace(/'/g, "\\'")}', '${res.image}')" 
-                                    id="btn-bookmark"
-                                    class="w-full py-4 rounded-2xl glass font-bold border border-white/10 hover:bg-white/5 transition flex items-center justify-center gap-3">
-                                <i class="fa fa-bookmark"></i> <span id="bookmark-text">Simpan Koleksi</span>
-                            </button>
-                        </div>
+            <div class="flex flex-col md:flex-row gap-10">
+                <div class="md:w-1/3">
+                    <div class="relative">
+                        <span class="type-badge ${getTypeClass(res.type)} scale-125 top-5 left-5">${res.type || 'Comic'}</span>
+                        <img src="${res.image}" class="w-full rounded-3xl shadow-2xl border border-white/10">
+                    </div>
+                    <div class="flex flex-col gap-3 mt-6">
+                        <button onclick="${startBtnAction}" class="amber-gradient w-full py-4 rounded-2xl font-bold text-black flex items-center justify-center gap-2 active:scale-95 transition">
+                            <i class="fa fa-play"></i> ${startBtnText}
+                        </button>
+                        <button onclick="toggleBookmark('${slug}', '${res.title.replace(/'/g, "")}', '${res.image}')" id="btn-bookmark"
+                            class="w-full py-4 rounded-2xl glass font-bold border-white/10 hover:bg-white/5 transition">
+                            <i class="fa fa-bookmark"></i> Simpan Koleksi
+                        </button>
                     </div>
                 </div>
-                
-                <div class="lg:w-2/3">
-                    <div class="flex flex-wrap gap-2 mb-6">
-                        ${res.genres ? res.genres.map(g => `
-                            <span class="bg-amber-500/10 text-amber-500 text-xs px-4 py-2 rounded-full font-bold uppercase border border-amber-500/20">
-                                ${g.title}
-                            </span>
-                        `).join('') : ''}
+                <div class="md:w-2/3">
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        ${res.genres ? res.genres.map(g => `<span class="bg-amber-500/10 text-amber-500 text-[10px] px-3 py-1 rounded-full font-bold uppercase border border-amber-500/20">${g.title}</span>`).join('') : ''}
                     </div>
                     
-                    <h1 class="text-3xl md:text-4xl font-extrabold mb-4">${res.title}</h1>
+                    <h1 class="text-3xl font-extrabold mb-4">${res.title}</h1>
                     
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div class="glass p-4 rounded-2xl border border-white/5">
-                            <div class="text-gray-500 text-xs uppercase font-bold mb-1">Status</div>
-                            <div class="text-green-400 font-bold">${res.status || 'Unknown'}</div>
-                        </div>
-                        <div class="glass p-4 rounded-2xl border border-white/5">
-                            <div class="text-gray-500 text-xs uppercase font-bold mb-1">Rating</div>
-                            <div class="text-amber-500 font-bold flex items-center gap-1">
-                                <i class="fa fa-star"></i> ${res.rating || 'N/A'}
-                            </div>
-                        </div>
-                        <div class="glass p-4 rounded-2xl border border-white/5">
-                            <div class="text-gray-500 text-xs uppercase font-bold mb-1">Tipe</div>
-                            <div class="text-white font-bold">${res.type || 'Comic'}</div>
-                        </div>
-                        <div class="glass p-4 rounded-2xl border border-white/5">
-                            <div class="text-gray-500 text-xs uppercase font-bold mb-1">Total Chapter</div>
-                            <div class="text-white font-bold">${currentChapterList.length}</div>
-                        </div>
+                    <div class="flex gap-6 mb-6 text-sm bg-white/5 p-4 rounded-2xl w-fit border border-white/5">
+                        <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Status</span><span class="text-green-400 font-bold">${res.status}</span></div>
+                        <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Rating</span><span class="text-amber-500 font-bold">⭐ ${res.rating}</span></div>
+                        <div class="flex flex-col"><span class="text-gray-500 text-[10px] uppercase font-bold">Type</span><span class="text-white font-bold">${res.type}</span></div>
                     </div>
 
-                    <div class="glass rounded-3xl p-6 border border-white/5 mb-8">
-                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                            <i class="fa fa-file-text text-amber-500"></i> Sinopsis
-                        </h3>
-                        <p class="text-gray-300 leading-relaxed text-justify">
-                            ${res.synopsis || "Sinopsis tidak tersedia."}
-                        </p>
-                    </div>
-
-                    <div class="glass rounded-3xl p-6 border border-white/5">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold flex items-center gap-2">
-                                <i class="fa fa-list text-amber-500"></i> Daftar Chapter
-                            </h3>
-                            <span class="text-amber-500 text-sm font-bold">
-                                ${currentChapterList.length} Chapter
-                            </span>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 text-justify">${res.synopsis || "Sinopsis tidak tersedia."}</p>
+                    <div class="glass rounded-3xl p-6 border-white/5">
+                        <h3 class="text-lg font-bold mb-4">Daftar Chapter</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-96 overflow-y-auto pr-2 custom-scroll">
+                            ${res.chapters.map(ch => `
+                                <div onclick="readChapter('${ch.slug}', '${slug}')" class="bg-white/5 p-3 rounded-xl cursor-pointer hover:bg-amber-500 hover:text-black transition text-sm flex justify-between">
+                                    <span>${ch.title}</span>
+                                </div>
+                            `).join('')}
                         </div>
-                        
-                        ${hasChapters ? `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-3 custom-scroll">
-                                ${currentChapterList.map((ch, index) => `
-                                    <div onclick="readChapter('${ch.slug}', '${slug}')" 
-                                         class="bg-white/5 p-4 rounded-xl cursor-pointer hover:bg-amber-500 hover:text-black transition flex justify-between items-center group">
-                                        <div class="flex-1 min-w-0">
-                                            <div class="font-bold text-sm line-clamp-1">${ch.title}</div>
-                                            <div class="text-xs text-gray-400 group-hover:text-black mt-1">
-                                                Chapter ${currentChapterList.length - index}
-                                            </div>
-                                        </div>
-                                        <i class="fa fa-chevron-right text-gray-400 group-hover:text-black ml-2"></i>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : `
-                            <div class="text-center py-12">
-                                <div class="text-amber-500 text-4xl mb-4">📖</div>
-                                <p class="text-gray-400">Belum ada chapter yang tersedia.</p>
-                            </div>
-                        `}
                     </div>
                 </div>
             </div>
         `;
-        
         checkBookmarkStatus(slug);
         saveHistory(slug, res.title, res.image);
         
@@ -569,7 +411,7 @@ async function showDetail(slug, push = true) {
         showError('Gagal memuat detail komik', `showDetail('${slug}')`);
     }
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0,0);
 }
 
 async function readChapter(chSlug, comicSlug = null, push = true) {
@@ -579,28 +421,20 @@ async function readChapter(chSlug, comicSlug = null, push = true) {
 
     mainNav.classList.add('-translate-y-full');
     mobileNav.classList.add('translate-y-full');
-    
-    contentArea.innerHTML = `
-        <div class="loading-container min-h-screen">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-amber-500 mb-4"></div>
-            <p class="text-gray-400">Memuat chapter...</p>
-        </div>
-    `;
+    contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
     
     try {
         const data = await fetchAPI(`${API_BASE}/chapter/${chSlug}`);
         
         if(!data || !data.data) {
             contentArea.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center px-4">
-                    <div class="error-container">
-                        <h2 class="text-3xl font-bold text-amber-500 mb-4">Chapter Tidak Ditemukan</h2>
-                        <p class="text-gray-400 mb-6">Chapter tidak dapat dimuat. Mungkin telah dihapus atau terjadi kesalahan.</p>
-                        <button onclick="${targetComicSlug ? `showDetail('${targetComicSlug}')` : 'showHome()'}" 
-                                class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
-                            Kembali
-                        </button>
-                    </div>
+                <div class="text-center py-40">
+                    <h2 class="text-2xl font-bold text-amber-500 mb-4">Chapter Tidak Ditemukan</h2>
+                    <p class="text-gray-400 mb-6">Chapter tidak dapat dimuat.</p>
+                    <button onclick="${targetComicSlug ? `showDetail('${targetComicSlug}')` : 'showHome()'}" 
+                            class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
+                        Kembali
+                    </button>
                 </div>
             `;
             return;
@@ -612,83 +446,50 @@ async function readChapter(chSlug, comicSlug = null, push = true) {
         let dropdownHTML = '';
         if (currentChapterList && currentChapterList.length > 0) {
             dropdownHTML = `
-                <select onchange="readChapter(this.value, '${targetComicSlug || ''}')" 
-                        class="bg-black/80 text-white border border-white/20 rounded-xl px-4 py-2 focus:outline-none focus:border-amber-500 text-sm min-w-[200px]">
-                    ${currentChapterList.map(ch => `
-                        <option value="${ch.slug}" ${ch.slug === chSlug ? 'selected' : ''}>
-                            ${ch.title}
-                        </option>
-                    `).join('')}
+                <select onchange="readChapter(this.value, '${targetComicSlug || ''}')" class="bg-black/80 text-white border border-white/20 rounded-lg text-xs p-2 mx-2 max-w-[150px]">
+                    ${currentChapterList.map(ch => `<option value="${ch.slug}" ${ch.slug === chSlug ? 'selected' : ''}>${ch.title}</option>`).join('')}
                 </select>
             `;
+        } else {
+            dropdownHTML = `<span class="text-xs font-bold px-4">Navigasi</span>`;
         }
 
         contentArea.innerHTML = `
             <div class="relative min-h-screen bg-black -mx-4 -mt-24">
                 <div id="reader-top" class="reader-ui fixed top-0 w-full glass z-[60] p-4 flex justify-between items-center border-b border-white/10">
-                    <div class="flex items-center gap-3">
-                        <button onclick="${backAction}" 
-                                class="p-2 hover:bg-white/10 rounded-xl transition flex items-center gap-2">
-                            <i class="fa fa-arrow-left"></i>
-                            <span class="hidden sm:inline text-sm">Kembali</span>
-                        </button>
-                        <h2 class="text-sm font-bold truncate text-amber-500 max-w-[200px] sm:max-w-md">
-                            ${res.title || chSlug.replace(/-/g, ' ')}
-                        </h2>
-                    </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="toggleFullScreen()" 
-                                class="p-2 hover:bg-white/10 rounded-xl transition"
-                                title="Fullscreen">
-                            <i class="fa fa-expand"></i>
-                        </button>
+                        <button onclick="${backAction}" class="p-2 hover:bg-white/10 rounded-full"><i class="fa fa-arrow-left"></i></button>
+                        <h2 class="text-xs font-bold truncate text-amber-500 max-w-[150px] md:max-w-xs">${chSlug.replace(/-/g, ' ')}</h2>
                     </div>
+                    <button onclick="toggleFullScreen()" class="p-2 hover:bg-white/10 rounded-full text-white/80">
+                        <i class="fa fa-expand"></i>
+                    </button>
                 </div>
                 
                 <div class="flex flex-col items-center pt-20 pb-40" onclick="toggleReaderUI()">
-                    ${res.images && res.images.length > 0 ? res.images.map(img => `
+                    ${res.images.map(img => `
                         <img src="${img}" 
-                             class="max-w-full md:max-w-3xl mb-1 loading-pulse"
+                             class="max-w-full md:max-w-3xl mb-1"
                              loading="lazy"
-                             onerror="this.style.display='none'">
-                    `).join('') : `
-                        <div class="text-center py-40">
-                            <div class="text-amber-500 text-6xl mb-4">🖼️</div>
-                            <h3 class="text-xl font-bold mb-2">Gambar Tidak Tersedia</h3>
-                            <p class="text-gray-400">Chapter ini tidak memiliki gambar atau gagal dimuat.</p>
-                        </div>
-                    `}
+                             onerror="this.src='https://via.placeholder.com/800x1200/1f2937/9ca3af?text=Gagal+Memuat'">
+                    `).join('')}
                 </div>
                 
                 <div id="reader-bottom" class="reader-ui fixed bottom-6 left-0 w-full z-[60] px-4 flex justify-center pointer-events-none">
-                    <div class="glass p-4 rounded-2xl flex gap-4 items-center shadow-2xl border border-white/10 pointer-events-auto">
-                        <button onclick="${res.navigation?.prev ? `readChapter('${res.navigation.prev}', '${targetComicSlug || ''}')` : ''}" 
-                                class="p-3 bg-white/10 rounded-xl ${!res.navigation?.prev ? 'opacity-30 cursor-not-allowed' : 'hover:bg-amber-500 hover:text-black transition'}"
-                                ${!res.navigation?.prev ? 'disabled' : ''}>
-                            <i class="fa fa-chevron-left"></i>
-                        </button>
-                        
-                        ${dropdownHTML || `
-                            <div class="px-4">
-                                <span class="text-sm font-bold">Chapter ${res.title || ''}</span>
-                            </div>
-                        `}
-                        
-                        <button onclick="${res.navigation?.next ? `readChapter('${res.navigation.next}', '${targetComicSlug || ''}')` : ''}" 
-                                class="p-3 amber-gradient text-black rounded-xl ${!res.navigation?.next ? 'opacity-30 cursor-not-allowed' : 'hover:opacity-90 transition'}"
-                                ${!res.navigation?.next ? 'disabled' : ''}>
-                            <i class="fa fa-chevron-right"></i>
-                        </button>
+                    <div class="glass p-3 rounded-2xl flex gap-2 items-center shadow-2xl border border-white/10 pointer-events-auto">
+                        <button onclick="${res.navigation.prev ? `readChapter('${res.navigation.prev}', '${targetComicSlug || ''}')` : ''}" class="p-3 bg-white/10 rounded-xl ${!res.navigation.prev ? 'opacity-20' : 'hover:bg-amber-500 hover:text-black transition'}"><i class="fa fa-chevron-left"></i></button>
+                        ${dropdownHTML}
+                        <button onclick="${res.navigation.next ? `readChapter('${res.navigation.next}', '${targetComicSlug || ''}')` : ''}" class="p-3 amber-gradient text-black rounded-xl ${!res.navigation.next ? 'opacity-20' : 'hover:scale-105 transition'}"><i class="fa fa-chevron-right"></i></button>
                     </div>
                 </div>
             </div>
         `;
         
         if(targetComicSlug) {
-            saveHistory(targetComicSlug, null, null, chSlug, res.title || chSlug.replace(/-/g, ' '));
+            saveHistory(targetComicSlug, null, null, chSlug, chSlug.replace(/-/g, ' '));
         }
         
-        // Auto-hide UI after 3 seconds
+        // Auto-hide UI setelah 3 detik
         setTimeout(() => {
             toggleReaderUI();
         }, 3000);
@@ -696,18 +497,18 @@ async function readChapter(chSlug, comicSlug = null, push = true) {
     } catch (error) {
         console.error('Error in readChapter:', error);
         contentArea.innerHTML = `
-            <div class="min-h-screen flex items-center justify-center px-4">
-                <div class="error-container">
-                    <h2 class="text-3xl font-bold text-amber-500 mb-4">Gagal Memuat Chapter</h2>
-                    <p class="text-gray-400 mb-6">Terjadi kesalahan saat memuat chapter.</p>
-                    <button onclick="${targetComicSlug ? `showDetail('${targetComicSlug}')` : 'showHome()'}" 
-                            class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
-                        Kembali
-                    </button>
-                </div>
+            <div class="text-center py-40">
+                <h2 class="text-2xl font-bold text-amber-500 mb-4">Gagal Memuat Chapter</h2>
+                <p class="text-gray-400 mb-6">Terjadi kesalahan saat memuat chapter.</p>
+                <button onclick="${targetComicSlug ? `showDetail('${targetComicSlug}')` : 'showHome()'}" 
+                        class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
+                    Kembali
+                </button>
             </div>
         `;
     }
+    
+    window.scrollTo(0,0);
 }
 
 function toggleReaderUI() {
@@ -730,17 +531,17 @@ function saveHistory(slug, title, image, chSlug, chTitle) {
         
         const data = {
             slug,
-            title: title || existing?.title || '',
-            image: image || existing?.image || '',
-            lastChapterSlug: chSlug || existing?.lastChapterSlug || '',
-            lastChapterTitle: chTitle || existing?.lastChapterTitle || '',
+            title: title || existing?.title,
+            image: image || existing?.image,
+            lastChapterSlug: chSlug || existing?.lastChapterSlug,
+            lastChapterTitle: chTitle || existing?.lastChapterTitle,
             timestamp: Date.now()
         };
         
         history = history.filter(h => h.slug !== slug);
         history.unshift(data);
         
-        if (history.length > 50) history.pop();
+        if (history.length > 30) history.pop();
         
         localStorage.setItem('fmc_history', JSON.stringify(history));
     } catch (error) {
@@ -753,20 +554,11 @@ function showHistory() {
         let history = JSON.parse(localStorage.getItem('fmc_history') || '[]');
         
         if (history.length === 0) {
-            contentArea.innerHTML = `
-                <div class="text-center py-20">
-                    <div class="text-amber-500 text-6xl mb-4">📖</div>
-                    <h2 class="text-2xl font-bold mb-2">Riwayat Baca</h2>
-                    <p class="text-gray-400 mb-6">Belum ada riwayat baca.</p>
-                    <button onclick="showHome()" class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
-                        Jelajahi Komik
-                    </button>
-                </div>
-            `;
+            contentArea.innerHTML = `<div class="text-center py-40 text-gray-500"><p>Belum ada riwayat baca.</p></div>`;
             return;
         }
         
-        renderGrid({ data: history }, "📚 Riwayat Baca Terbaru", null);
+        renderGrid({ data: history }, "Riwayat Baca", null);
     } catch (error) {
         console.error('Error in showHistory:', error);
         showError('Gagal memuat riwayat', 'showHistory()');
@@ -791,10 +583,6 @@ function toggleBookmark(slug, title, image) {
         
         localStorage.setItem('fmc_bookmarks', JSON.stringify(bookmarks));
         checkBookmarkStatus(slug);
-        
-        // Show notification
-        const isBookmarked = idx === -1;
-        showNotification(isBookmarked ? '✅ Ditambahkan ke favorit' : '❌ Dihapus dari favorit');
     } catch (error) {
         console.error('Error toggling bookmark:', error);
     }
@@ -804,13 +592,12 @@ function checkBookmarkStatus(slug) {
     try {
         let bookmarks = JSON.parse(localStorage.getItem('fmc_bookmarks') || '[]');
         const btn = document.getElementById('btn-bookmark');
-        const text = document.getElementById('bookmark-text');
         
         if (btn && bookmarks.some(b => b.slug === slug)) {
-            btn.innerHTML = `<i class="fa fa-check text-amber-500"></i> <span id="bookmark-text">Tersimpan</span>`;
+            btn.innerHTML = `<i class="fa fa-check text-amber-500"></i> Tersimpan`;
             btn.classList.add('border-amber-500');
         } else if (btn) {
-            btn.innerHTML = `<i class="fa fa-bookmark"></i> <span id="bookmark-text">Simpan Koleksi</span>`;
+            btn.innerHTML = `<i class="fa fa-bookmark"></i> Simpan Koleksi`;
             btn.classList.remove('border-amber-500');
         }
     } catch (error) {
@@ -823,58 +610,18 @@ function showBookmarks() {
         let bookmarks = JSON.parse(localStorage.getItem('fmc_bookmarks') || '[]');
         
         if (bookmarks.length === 0) {
-            contentArea.innerHTML = `
-                <div class="text-center py-20">
-                    <div class="text-amber-500 text-6xl mb-4">⭐</div>
-                    <h2 class="text-2xl font-bold mb-2">Koleksi Favorit</h2>
-                    <p class="text-gray-400 mb-6">Belum ada komik yang disimpan.</p>
-                    <button onclick="showHome()" class="amber-gradient px-6 py-3 rounded-xl font-bold text-black">
-                        Jelajahi Komik
-                    </button>
-                </div>
-            `;
+            contentArea.innerHTML = `<div class="text-center py-40 text-gray-500"><p>Belum ada komik yang disimpan.</p></div>`;
             return;
         }
         
-        renderGrid({ data: bookmarks }, "⭐ Koleksi Favorit", null);
+        renderGrid({ data: bookmarks }, "Koleksi Favorit", null);
     } catch (error) {
         console.error('Error in showBookmarks:', error);
         showError('Gagal memuat koleksi', 'showBookmarks()');
     }
 }
 
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-24 right-4 glass border border-amber-500/20 px-6 py-3 rounded-xl z-[100] animate-slide-in';
-    notification.innerHTML = `
-        <div class="flex items-center gap-3">
-            <span class="text-amber-500">${message}</span>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Add CSS for notification animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slide-in {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    .animate-slide-in {
-        animation: slide-in 0.3s ease-out;
-    }
-`;
-document.head.appendChild(style);
-
-// Handle browser navigation (back/forward)
+// Handle browser navigation
 window.addEventListener('popstate', () => {
     handleInitialLoad();
 });
@@ -882,74 +629,38 @@ window.addEventListener('popstate', () => {
 // Improved routing handler
 function handleInitialLoad() {
     const path = window.location.pathname;
-    console.log('Loading path:', path);
     
     resetNavs();
     
-    // Check if it's a direct link access
-    const isDirectAccess = !sessionStorage.getItem('hasLoaded');
-    
-    if (isDirectAccess) {
-        contentArea.innerHTML = `
-            <div class="loading-container">
-                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div>
-                <p class="text-gray-400 mt-4">Memuat aplikasi...</p>
-            </div>
-        `;
-        sessionStorage.setItem('hasLoaded', 'true');
-    }
-    
-    // Handle different routes
-    if (path === '/404.html') {
-        // Already on 404 page
-        return;
-    }
-    
+    if (path === '/404.html') return;
+
     if (path.startsWith('/series/')) {
-        const slug = path.split('/series/')[1];
-        if (slug && slug.trim() !== '') {
-            showDetail(slug, false);
-            return;
-        }
+        const parts = path.split('/');
+        const slug = parts[2];
+        if (slug) showDetail(slug, false);
+        else showHome(false);
+    } 
+    else if (path.startsWith('/chapter/')) {
+        const parts = path.split('/');
+        const slug = parts[2];
+        if (slug) readChapter(slug, null, false);
+        else showHome(false);
+    } 
+    else if (path === '/ongoing') {
+        showOngoing(1, false);
     }
-    
-    if (path.startsWith('/chapter/')) {
-        const slug = path.split('/chapter/')[1];
-        if (slug && slug.trim() !== '') {
-            readChapter(slug, null, false);
-            return;
-        }
+    else if (path === '/completed') {
+        showCompleted(1, false);
     }
-    
-    if (path.startsWith('/ongoing')) {
-        const match = path.match(/\/ongoing(?:\/(\d+))?/);
-        const page = match && match[1] ? parseInt(match[1]) : 1;
-        showOngoing(page, false);
-        return;
+    else {
+        showHome(false);
     }
-    
-    if (path.startsWith('/completed')) {
-        const match = path.match(/\/completed(?:\/(\d+))?/);
-        const page = match && match[1] ? parseInt(match[1]) : 1;
-        showCompleted(page, false);
-        return;
-    }
-    
-    // Default to home
-    showHome(false);
 }
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded');
-    
-    // Load genres
     loadGenres();
-    
-    // Handle initial load
-    setTimeout(() => {
-        handleInitialLoad();
-    }, 100);
+    handleInitialLoad();
     
     // Setup progress bar
     window.addEventListener('scroll', () => {
