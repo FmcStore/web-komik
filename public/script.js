@@ -13,7 +13,6 @@ const mobileNav = document.getElementById('mobile-nav');
 
 let currentChapterList = [];
 
-// --- FUNGSI UUID INTEGRATION ---
 
 async function getUuidFromSlug(slug, type) {
     try {
@@ -41,7 +40,6 @@ function updateURL(path) {
     }
 }
 
-// --- CORE UTILS ---
 
 function getTypeClass(type) {
     if (!type) return 'type-default';
@@ -100,7 +98,6 @@ async function loadGenres() {
     }
 }
 
-// --- NAVIGATION PAGES ---
 
 async function showHome(push = true) {
     if (push) updateURL('/'); 
@@ -234,13 +231,11 @@ function renderGrid(data, title, funcName, extraArg = null) {
     window.scrollTo(0,0);
 }
 
-// --- DETAIL & CHAPTER (DENGAN UUID) ---
 
 async function showDetail(idOrSlug, push = true) {
     let slug = idOrSlug;
     contentArea.innerHTML = `<div class="flex justify-center py-40"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-amber-500"></div></div>`;
 
-    // Cek jika ini UUID (panjang 36)
     if (idOrSlug.length === 36) {
         const mapping = await getSlugFromUuid(idOrSlug);
         if (mapping) slug = mapping.slug;
@@ -370,7 +365,6 @@ async function readChapter(chIdOrSlug, comicSlug = null, push = true) {
     window.scrollTo(0,0);
 }
 
-// --- HISTORY & BOOKMARKS (TETAP SAMA) ---
 
 function toggleReaderUI() {
     document.getElementById('reader-top').classList.toggle('ui-hidden-top');
@@ -423,7 +417,6 @@ function showBookmarks() {
     renderGrid({ data: bookmarks }, "Koleksi Favorit", null);
 }
 
-// --- INITIAL LOAD HANDLER (SOLUSI ANTI-BLANK) ---
 
 async function handleInitialLoad() {
     const path = window.location.pathname;
