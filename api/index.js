@@ -8,13 +8,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Konfigurasi Koneksi dengan Timeout lebih pendek agar tidak gantung
 const connectionOptions = {
-    serverSelectionTimeoutMS: 5000, // Maksimal nunggu 5 detik saja
+    serverSelectionTimeoutMS: 5000, 
     socketTimeoutMS: 45000,
 };
 
-// Model Mapping (Cek jika sudah ada agar tidak error Overwrite)
 const MappingSchema = new mongoose.Schema({
     uuid: { type: String, unique: true },
     slug: String,
@@ -22,7 +20,6 @@ const MappingSchema = new mongoose.Schema({
 });
 const Mapping = mongoose.models.Mapping || mongoose.model('Mapping', MappingSchema);
 
-// Fungsi Koneksi yang lebih aman
 async function connectToDatabase() {
     if (mongoose.connection.readyState === 1) return;
     
@@ -36,7 +33,6 @@ async function connectToDatabase() {
     }
 }
 
-// Endpoint Utama: Get ID
 app.post('/api/get-id', async (req, res) => {
     try {
         await connectToDatabase();
@@ -59,7 +55,6 @@ app.post('/api/get-id', async (req, res) => {
     }
 });
 
-// Endpoint: Get Slug
 app.get('/api/get-slug/:uuid', async (req, res) => {
     try {
         await connectToDatabase();
@@ -71,7 +66,6 @@ app.get('/api/get-slug/:uuid', async (req, res) => {
     }
 });
 
-// Endpoint Cek Kesehatan (Gunakan ini untuk tes manual)
 app.get('/api/health', async (req, res) => {
     try {
         await connectToDatabase();
