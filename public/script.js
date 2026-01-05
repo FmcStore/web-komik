@@ -1,7 +1,6 @@
 /* 
  <!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada Wai masih aja mau genjutsu webnya malu lah sama ortu lu -->
 */
-
 const API_PROXY = "https://api.nekolabs.web.id/px?url=";
 const API_BASE = "https://www.sankavollerei.com/comic/komikcast";
 const BACKEND_URL = window.location.origin;
@@ -13,6 +12,39 @@ const mobileNav = document.getElementById('mobile-nav');
 
 let currentChapterList = [];
 
+// --- LOGIKA MIGRASI MODAL ---
+function showMigrationModal() {
+    const modal = document.getElementById('migration-modal');
+    const timerBar = document.getElementById('modal-timer-bar');
+    const closeText = document.getElementById('auto-close-text');
+    
+    // Jangan muncul jika sudah pernah ditutup di sesi ini
+    if (sessionStorage.getItem('migrasi_v2_closed')) return;
+
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('opacity-100'), 10);
+
+    let timeLeft = 3;
+    timerBar.style.transition = "width 3s linear";
+    timerBar.style.width = "0%";
+
+    const interval = setInterval(() => {
+        timeLeft--;
+        closeText.innerText = `Menutup otomatis dalam ${timeLeft} detik...`;
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            closeMigrationModal();
+        }
+    }, 1000);
+}
+
+function closeMigrationModal() {
+    const modal = document.getElementById('migration-modal');
+    modal.classList.replace('opacity-100', 'opacity-0');
+    sessionStorage.setItem('migrasi_v2_closed', 'true');
+    setTimeout(() => modal.classList.add('hidden'), 500);
+}
+// ----------------------------
 
 async function getUuidFromSlug(slug, type) {
     try {
@@ -39,7 +71,6 @@ function updateURL(path) {
         history.pushState(null, null, path);
     }
 }
-
 
 function getTypeClass(type) {
     if (!type) return 'type-default';
@@ -97,7 +128,6 @@ async function loadGenres() {
         });
     }
 }
-
 
 async function showHome(push = true) {
     if (push) updateURL('/'); 
@@ -230,7 +260,6 @@ function renderGrid(data, title, funcName, extraArg = null) {
     `;
     window.scrollTo(0,0);
 }
-
 
 async function showDetail(idOrSlug, push = true) {
     let slug = idOrSlug;
@@ -365,7 +394,6 @@ async function readChapter(chIdOrSlug, comicSlug = null, push = true) {
     window.scrollTo(0,0);
 }
 
-
 function toggleReaderUI() {
     document.getElementById('reader-top').classList.toggle('ui-hidden-top');
     document.getElementById('reader-bottom').classList.toggle('ui-hidden-bottom');
@@ -417,7 +445,6 @@ function showBookmarks() {
     renderGrid({ data: bookmarks }, "Koleksi Favorit", null);
 }
 
-
 async function handleInitialLoad() {
     const path = window.location.pathname;
     resetNavs(); 
@@ -450,4 +477,7 @@ window.addEventListener('popstate', () => handleInitialLoad());
 document.addEventListener('DOMContentLoaded', () => {
     loadGenres();
     handleInitialLoad();
+    
+    // Tampilkan Modal Pengumuman setelah web termuat
+    setTimeout(showMigrationModal, 1000);
 });
