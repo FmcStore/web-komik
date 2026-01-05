@@ -1,4 +1,3 @@
-<!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada Wai masih aja mau genjutsu webnya malu lah sama ortu lu -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -22,14 +21,12 @@
     <nav id="main-nav" class="fixed top-0 w-full z-50 glass border-b border-white/5 transition-transform duration-300">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-8">
-                
                 <div class="flex items-center gap-3 cursor-pointer" onclick="showHome()">
                     <img src="assets/icon.png" onerror="this.src='https://via.placeholder.com/40'" class="w-9 h-9 rounded-xl object-cover border border-amber-500/50 shadow-lg shadow-amber-500/20">
                     <h1 class="text-2xl font-bold text-amber-500">
                         Fmc<span class="text-white">Comic</span>
                     </h1>
                 </div>
-
                 <div class="hidden md:flex gap-6 text-sm font-medium">
                     <button onclick="showHome()" class="hover:text-amber-500 transition">Beranda</button>
                     <button onclick="showOngoing()" class="hover:text-amber-500 transition">Ongoing</button>
@@ -43,6 +40,7 @@
         </div>
     </nav>
 
+    <!-- Filter Panel -->
     <div id="filter-panel" class="fixed top-16 left-0 w-full glass z-[45] hidden border-b border-amber-500/20 p-4">
         <div class="container mx-auto">
             <div class="flex flex-col gap-4">
@@ -51,7 +49,6 @@
                     <input type="text" id="search-input" onkeyup="handleSearch(event)" placeholder="Cari judul komik..." 
                         class="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-amber-500">
                 </div>
-                
                 <div class="flex flex-wrap gap-2 justify-between">
                     <div class="flex flex-wrap gap-2 flex-1">
                         <select id="filter-genre" class="bg-black/40 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:border-amber-500 text-sm text-gray-300 max-w-[150px]">
@@ -79,11 +76,50 @@
         <div id="content-area"></div>
     </main>
 
+    <!-- Mobile Nav -->
     <div id="mobile-nav" class="fixed bottom-0 w-full glass border-t border-white/5 flex justify-around p-3 md:hidden z-50 transition-transform duration-300">
         <button onclick="showHome()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-home text-lg"></i><span class="text-[10px]">Home</span></button>
         <button onclick="showOngoing()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-fire text-lg text-orange-500"></i><span class="text-[10px]">Hot</span></button>
         <button onclick="showCompleted()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-check-circle text-lg text-green-500"></i><span class="text-[10px]">Selesai</span></button>
         <button onclick="showHistory()" class="flex flex-col items-center gap-1 text-gray-400 active:text-amber-500"><i class="fa fa-history text-lg"></i><span class="text-[10px]">Riwayat</span></button>
+    </div>
+
+    <!-- MODAL PENGUMUMAN MIGRASI -->
+    <div id="migration-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-500">
+        <div class="bg-zinc-900 border border-white/10 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-popup relative">
+            <!-- Progress Bar Kecil untuk Auto Close -->
+            <div id="modal-timer-bar" class="absolute top-0 left-0 h-1 bg-amber-500 transition-all linear" style="width: 100%"></div>
+
+            <div class="p-8">
+                <button onclick="closeMigrationModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+
+                <div class="w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                    <i class="fa fa-paper-plane text-3xl text-amber-500"></i>
+                </div>
+
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold text-white mb-3">Pindah Alamat Baru!</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">
+                        Kami pindah ke domain <span class="text-amber-500 font-bold underline">fmccomic.my.id</span> demi peningkatan server agar lebih cepat dan stabil.
+                    </p>
+                    
+                    <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-6 text-left">
+                        <p class="text-[11px] text-red-400 leading-tight italic">
+                            * Mohon maaf, riwayat baca & bookmark akan terhapus karena perbedaan domain.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <a href="https://fmccomic.my.id" class="amber-gradient w-full py-4 rounded-2xl font-bold text-black flex items-center justify-center gap-2 hover:opacity-90 transition">
+                            Klik ke Domain Baru <i class="fa fa-external-link-alt text-xs"></i>
+                        </a>
+                        <p id="auto-close-text" class="text-gray-600 text-[10px] mt-2 font-medium">Menutup otomatis dalam 3 detik...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
