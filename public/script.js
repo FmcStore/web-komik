@@ -24,8 +24,8 @@ function showMigrationModal() {
     modal.classList.remove('hidden');
     setTimeout(() => modal.classList.add('opacity-100'), 10);
 
-    let timeLeft = 3;
-    timerBar.style.transition = "width 3s linear";
+    let timeLeft = 7
+    timerBar.style.transition = "width 7s linear";
     timerBar.style.width = "0%";
 
     const interval = setInterval(() => {
