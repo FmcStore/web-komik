@@ -2,7 +2,7 @@
 /* 
  <!-- Woi Kontol Lu ngapain?, mau nyuri ya lu? udh ada ai masih aja mau genjutsu webnya malu lah sama ortu lu -->
 */
-const API_PROXY = "https://rynekoo-api.vercel.app/px?url=";
+const API_PROXY = "https://api.nekolabs.web.id/px?url=";
 const API_BASE = "https://www.sankavollerei.com/comic/komikcast";
 const BACKEND_URL = window.location.origin;
 
